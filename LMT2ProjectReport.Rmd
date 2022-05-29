@@ -1,5 +1,5 @@
 ---
-title: "MLVarBinryDat"
+title: "Maximum Likelihood Variance Components for Binary Data"
 author: "Gauri Phatak"
 date: "5/29/2022"
 output: html_document
@@ -9,22 +9,52 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Computing models for binary data are limited in usage due to the intractability of computation *cite* . In this paper a class of probit-normal models is introduced. They describe ML and REML estimations using EM algorithm. EM algorithm proposed is similar to continuous normal linear model.
+Computations are feasible for any number of structures of random effects and arbitrary number of fixed effects. ML estimation has been described only in nested models thus far *Check the progress since this paper was published.*
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+focus on variance estimation in mixed models and BLUP of observed values of random effects. Different than usualy repeated measures model, i that fixed effects are primary quantities of interest and random effects are nuisance.Do not consider covariance components models *Check if there is a paper that works on this.*
 
-```{r cars}
-summary(cars)
-```
+Benifits of correlated probit models over others:
 
-## Including Plots
+1. Beta-binomial does not generalize easily to multiple random effects
+2. Generalization of quasi likelihood methods focuses on fixed effects and only estimates var and covar as nuisance params.
+3. prentice considers to estimating var covar but models a difficult to generalize.
 
-You can also embed plots, for example:
+The model proposed here is simplified version of threshold model *explain what threshold model is* 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Model
+
+### What is threshold model?
+
+### What is probit analysis model?
+
+Threshold model,
+
+$$Y = X\beta +Z u +\epsilon,$$
+$$ W_i = I_{Y_i >0}, i = 1,2,...,n,$$
+$$Where, u \sim N(0,D) \;\;\;\; \epsilon \sim N(0, I),$$
+$$ X \equiv diag\{1_{m_i}\} , i = 1,2,...,G$$
+
+$$Z \equiv diag\{1_{n_{ij}}, j = 1,2,....m_i\}\;\; and \;\; \beta = \mu$$
+u and \epsilon are independent
+This model has restriction that negative correlations cannot be model.
+
+the primary interest is estimation of D parameter i.e. the variances of random effects. 
+
+
+
+## MLE
+
+## EM for ML estimation
+
+## Examples
+
+### Simulations
+
+## Conclusion
+
+## References
+
