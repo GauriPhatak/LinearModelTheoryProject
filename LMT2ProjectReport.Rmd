@@ -2,7 +2,9 @@
 title: "Maximum Likelihood Variance Components for Binary Data"
 author: "Gauri Phatak"
 date: "5/29/2022"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -45,28 +47,83 @@ $$Where, u \sim N(0,D) \;\;\;\; \epsilon \sim N(0, I),$$
 $$ X \equiv diag\{1_{m_i}\} , i = 1,2,...,G$$
 
 $$Z \equiv diag\{1_{n_{ij}}, j = 1,2,....m_i\}\;\; and \;\; \beta = \mu$$
-u and \epsilon are independent
+u and $\epsilon$ are independent
 This model has restriction that negative correlations cannot be model.
 
 the primary interest is estimation of D parameter i.e. the variances of random effects. 
 
-Adavmntages of probit-normal model over logit-normal model:
+Advantages of probit-normal model over logit-normal model:
 
-1. with a single random effect and only one obeservation per level of random effect the proposed model reduces to usual probit model (with a different error term for $\epsilon$). This is not the same for logit models. 
+1. with a single random effect and only one observation per level of random effect the proposed model reduces to usual probit model (with a different error term for $\epsilon$). This is not the same for logit models. 
 
-2. The marginal mean of $\W_i$ haas simple representation,
+2. The marginal mean of $\W_i$ has simple representation,
 
 $$E[W_i] = \Phi(x_i^t\beta(z_i^tDz_i +I)^{-1/2})$$
-3. The EM algorithm takes form close to continous normal linear model.
+3. The EM algorithm takes form close to continuous normal linear model.
 
 Going forward the paper follows standard ANOVA model for variance components estimation,
 
 $$Y = X \beta +\sum_{i=1}^r Z_i u_i +\epsilon$$
 $$u_i \sim independently N_{q_r}(0,\theta_i I)$$
+## MLE and REML
+### MLE
 
-## MLE
+Reasons for using EM algorithm:
 
-## EM for ML estimation
+1. Offers framework for estimation sismilar to Normal theory case. *HOW*
+
+2. Auto contraints for iterates to be within parameter space. *HOW*
+
+3. Natural extention to REML estimation. *HOW*
+
+4. Converges from a wider range of starting values as compared to quasi-Newton algorithm. *Show this in simulation*.
+
+Maximization Step:
+ML estimates for $\theta_i$ are $\tilde{\theta_i} = \frac{u_i^t u_i}{q_i}$  and estimates for $\beta$ is $(X^t\hat{V^{-1}X})^{-1}X^t\hat{V^{-1}}Y$, where $\hat{V^{-1}}$ is a $var(Y)$ with $\theta_i$ replaced by $\hat{\theta_i}$ and,
+
+$$var(Y) = I + \sum^c_{i=1}\theta_iZ_iZ_i^t$$
+
+Expectation Step:
+
+$E[Y|W]$ and $E[u_i^tu_i|W]$ can be calculated using the below,
+
+$$E[u_i^tu_i|W] = E[E[u_i^tu_i|Y] |W]$$
+To calculate the inner expectation using multivariate normal distribution *How can this be aplicable?*
+
+$$E[u_i^tu_i|Y] = \theta^2_i(Y-X\beta)^tV^{-1}Z_iZ_i^tV^{-1}(Y-X\beta) + tr(\theta_i I - \theta^2_i Z_i^t V^{-1}Z_i)$$
+Using the equation above to calculate $E[u_i^tu_i|W]$  we get,
+
+$$E[u_i^tu_i|W] = \theta_i^2 trV^{-1}Z_iZ_i^tV^{-1}V_{Y|W} +$$
+$$\theta_i^2 (\mu_{Y|W} - X\beta)^tV^{-1}Z_iZ_i^tV^{-1} (\mu_{Y|W} - X\beta)+ $$
+$$tr(\theta_i I - \theta_i^2Z_i^tV^{-1}Z_i)$$
+Here, $V_{Y|W} = Var(Y|W)$ and $\mu_{Y|W} = E[Y|W]$. These are the only extra computations needed for ML estimation for discrete data.
+
+### EM for ML estimation
+
+Steps:
+
+1. Obtaining starting values of $\beta^{(0)}$ and $\theta^{(0)}$ set to $m=0$.
+
+2. Expectation steps:
+
+Calculating the expectation step for m.
+
+$$\hat{t}_i^{(m)} = \theta_i^{(m)2} trV^{(m)-1}Z_iZ_i^tV^{(m)-1}V_{Y|W}^{(m)} +$$
+$$\theta_i^{(m)2} (\mu_{Y|W}^{(m)} - X\beta^{(m)})^tV^{(m)-1}Z_iZ_i^tV^{(m)-1} (\mu_{Y|W}^{(m)} - X\beta^{(m)})+ $$
+$$tr(\theta_i^{(m)} I - \theta_i^{(m)2}Z_i^tV^{(m)-1}Z_i)$$$
+3. Maximization steps:
+
+$$\theta_i^{m+1} = \hat{t}^{(m)}_i / q_i$$
+
+and $\beta^{m+1}$,
+
+$$\beta^{m+1} = (X^t V^{-1}X)^{-1}X^tV^{-1}\mu_{Y|W}$$
+
+4. if convergence is reached $\hat{\theta}=\theta^{m+1}$ and $\hat{\beta} = \beta^{m+1}$ else,  increment m by 1 and return to step 1.
+
+The implementation of EM algorithm is identical to the continous case. 
+### EM for REML estimation
+
 
 ## Examples
 
