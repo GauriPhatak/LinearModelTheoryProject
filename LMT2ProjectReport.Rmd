@@ -2,7 +2,7 @@
 title: "Maximum Likelihood Variance Components for Binary Data"
 author: "Gauri Phatak"
 date: "5/29/2022"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -29,7 +29,13 @@ The model proposed here is simplified version of threshold model *explain what t
 
 ### What is threshold model?
 
-### What is probit analysis model?
+### What is probit model?
+
+#### What is probit -normal model?
+
+### What is logit model?
+
+#### What is logit normal model?
 
 Threshold model,
 
@@ -44,7 +50,19 @@ This model has restriction that negative correlations cannot be model.
 
 the primary interest is estimation of D parameter i.e. the variances of random effects. 
 
+Adavmntages of probit-normal model over logit-normal model:
 
+1. with a single random effect and only one obeservation per level of random effect the proposed model reduces to usual probit model (with a different error term for $\epsilon$). This is not the same for logit models. 
+
+2. The marginal mean of $\W_i$ haas simple representation,
+
+$$E[W_i] = \Phi(x_i^t\beta(z_i^tDz_i +I)^{-1/2})$$
+3. The EM algorithm takes form close to continous normal linear model.
+
+Going forward the paper follows standard ANOVA model for variance components estimation,
+
+$$Y = X \beta +\sum_{i=1}^r Z_i u_i +\epsilon$$
+$$u_i \sim independently N_{q_r}(0,\theta_i I)$$
 
 ## MLE
 
