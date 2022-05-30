@@ -1,7 +1,7 @@
 ---
 title: "Maximum Likelihood Variance Components for Binary Data"
 author: "Gauri Phatak"
-date: "5/29/2022"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     df_print: paged
@@ -65,7 +65,9 @@ Going forward the paper follows standard ANOVA model for variance components est
 
 $$Y = X \beta +\sum_{i=1}^r Z_i u_i +\epsilon$$
 $$u_i \sim independently N_{q_r}(0,\theta_i I)$$
-## MLE and REML
+
+## MLE and EM for MLE and REML
+
 ### MLE
 
 Reasons for using EM algorithm:
@@ -121,13 +123,36 @@ $$\beta^{m+1} = (X^t V^{-1}X)^{-1}X^tV^{-1}\mu_{Y|W}$$
 
 4. if convergence is reached $\hat{\theta}=\theta^{m+1}$ and $\hat{\beta} = \beta^{m+1}$ else,  increment m by 1 and return to step 1.
 
-The implementation of EM algorithm is identical to the continous case. 
+The implementation of EM algorithm is identical to the continuous case.
+
 ### EM for REML estimation
+
+For REML we try and maximize the portion of likelihood that depends only on the variance and not on the fixed effects components. Here they have treated fixed effects as random effects *What are the consequences of doing this?* for which variance tends to infinity. Setting prior information for fixed effects be 0, the expected value can be calculated as:
+
+$$E[u_i^tu_i|W] = \theta_i^2 trPZ_iZ_i^tPV_{Y|W} +\theta_i^2 \mu_{Y|W}^tPZ_iZ_i^tP\mu_{Y|W}+tr(\theta_i I - \theta_i^2Z_i^tPZ_i)$$
+Where $P = V^{-1} - V^{-1}X(X^tV^{-1}X)^{-1}X^tV^{-1}$.
+
+Using the above, the EM steps are,
+
+1. Obtain starting value of $\theta^{(0)}\;\; with \;\;m=0$.
+
+2. Expectation steps:
+$$\hat{t}^{(m)}_i=\theta_i^{(m)2} trP^{(m)}Z_iZ_i^tP^{(m)}V_{Y|W}^{(m)} +$$
+$$\theta_i^{(m)2} \mu_{Y|W}^{(m)t}P^{(m)}Z_iZ_i^tP^{(m)}\mu_{Y|W}^{(m)}+$$
+  $$tr(\theta_i^{(m)} I - \theta_i^{(m)2}Z_i^tP^{(m)2}Z_i)$$
+3. Maximization step,
+
+$$\theta^{(m+1)} = \hat{t}^{m}_i / q_i$$
+4. if convergence is reached $\hat{\theta}=\theta^{m+1}$ else increment m by 1 and go back to step 2.
 
 
 ## Examples
 
+### The Weil Data
+
 ### Simulations
+
+## Current advancements 
 
 ## Conclusion
 
