@@ -150,6 +150,38 @@ $$\theta^{(m+1)} = \hat{t}^{m}_i / q_i$$
 
 ### The Weil Data
 
+$$Y_{ij} = \mu_i + u_{ij} + \epsilon_{ijk} \;\;and\;\; W_{ij}  = I_{Y_{ij} > 0}$$
+
+The Likelihood function is:
+$$\int_{-\infty}^\infty \alpha\Psi(\alpha;n,s,\mu,\sigma)\phi(\alpha)d(\alpha) = \frac{}{}$$
+
+```{r}
+#c 13 13   c 12 12   c  9  9   c  9  9   c  8  8   c  8  8   c 13 12   c 12 11
+#c 10  9   c 10  9   c  9  8   c 13 11   c  5  4   c  7  5   c 10  7   c 10  7
+#t 12 12   t 11 11   t 10 10   t  9  9   t 11 10   t 10  9   t 10  9   t  9  8
+#t  9  8   t  5  4   t  9  7   t  7  4   t 10  5   t  6  3   t 10  3   t  7  0
+
+## since previous analyses have shown unequal values of variance in the two groups each group is fit separatetly. 
+
+## installing nlmixer package to get the data
+#install.packages("nlmixr")
+# SAS package explaining data: https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_nlmixed_sect040.htm
+library(nlmixr)
+data("rats")
+dat <- rats
+head(dat)
+dat$W <- (dat$m - dat$x) > 0
+
+## Step 1: set initil values
+
+## Put this in while loop till convergence.
+## Step 2: Expectation step
+
+## Step3: Maximization step
+
+```
+
+
 ### Simulations
 
 ## Current advancements 
