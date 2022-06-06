@@ -14,26 +14,34 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction
 
 Computing models for binary data are limited in usage due to the intractability of computation *cite* . In this paper a class of probit-normal models is introduced. They describe ML and REML estimations using EM algorithm. EM algorithm proposed is similar to continuous normal linear model.
-Computations are feasible for any number of structures of random effects and arbitrary number of fixed effects. ML estimation has been described only in nested models thus far *Check the progress since this paper was published.*
+Computations are feasible for any number of structures of random effects and arbitrary number of fixed effects. Till this point ML estimation was described only for nested random effects model. 
 
-focus on variance estimation in mixed models and BLUP of observed values of random effects. Different than usualy repeated measures model, i that fixed effects are primary quantities of interest and random effects are nuisance.Do not consider covariance components models *Check if there is a paper that works on this.*
+The focus of this paper is on variance estimation in mixed models and BLUP of observed values of random effects. Usual repeated measures model concentrate on fixed effects parameters and treat variance parameters as nuisance.
 
-Benifits of correlated probit models over others:
+Before this paper, beta binomial models were used for correlated binary data. But they do not generalize easily to multiple random effects. There are quasi likelihood methods proposed that focus on fixed effects and treat random effects as nuisance parameters. This paper considers a correlated probit model. It is similar to a logit normal models. But, the logit models were intended only for longitudinal data setting.
+
+Benefits of correlated probit models over others:
 
 1. Beta-binomial does not generalize easily to multiple random effects
 2. Generalization of quasi likelihood methods focuses on fixed effects and only estimates var and covar as nuisance params.
 3. prentice considers to estimating var covar but models a difficult to generalize.
 
-The model proposed here is simplified version of threshold model *explain what threshold model is* 
-
+The model proposed here is simplified version of threshold model. 
 
 ## Model
 
 ### What is threshold model?
 
-### What is probit model?
+Suppose for given explanatory variables there is a latent variable U that has continous distribution.  Now suppose there is another variable Y which is a binary variable. A binary response Y = 1 is recorded only when U > threshold. Without loss of generality the threshold is set to 0.   
 
-#### What is probit -normal model?
+### What is probit -normal model?
+
+As an example, 
+$$ U \sim N(x'\beta, 1) then, $$
+$$\theta_i = P(Y=1|x_i) = \Phi (x_i' \beta)$$
+$$\Phi(t) = (2\pi)^{-1/2}\int^t_{-\infty}exp(-\frac{1}{2}z^2)dz$$
+
+
 
 ### What is logit model?
 
@@ -167,26 +175,171 @@ $$\int_{-\infty}^\infty \alpha\Psi(\alpha;n,s,\mu,\sigma)\phi(\alpha)d(\alpha) =
 #install.packages("nlmixr")
 # SAS package explaining data: https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_nlmixed_sect040.htm
 library(nlmixr)
+library(lme4)
 data("rats")
 dat <- rats
 head(dat)
 dat$W <- (dat$m - dat$x) > 0
 
-## Step 1: set initil values
+## Step 1: set ini  initial values
 
 ## Put this in while loop till convergence.
 ## Step 2: Expectation step
 
 ## Step3: Maximization step
+# 
+dat$IDFac <- factor(dat$ID)
+bFit <- glmer(W ~ x1+(1|IDFac), data = dat[dat$x1 == 1,],family = binomial(link= "probit"))
+summary(bFit)
+
+dat$W <- as.numeric(dat$W)
+dat$diff <- dat$m - dat$x
+glmmFit <- glmm(W ~ trt, list(W ~ IDFac), varcomps.names = c("IDFac"), data  = dat, family.glmm = binomial.glmm, m =100000)
+summary(glmmFit)
+
+
+## Using the EM function
+
+EMfit <-  EM(y = dat$W,
+             X = model.matrix(~ dat$trt-1),
+             ZETA = list(Z = model.matrix(~ dat$IDFac -1)))
+
+## HOW TO DO JUST THE SIMULATION.
+# For Simulation just set beta0 and beta 1 u1 and u1 and X and Z can be the same vector. this way you have fixed intercept and slope b0 and b1 and random intercept and slope u0 and u1. Using this generate Y and if Y is positive set W to be 1 0 otherwise. Fixed value are 'i' random effect are'j' and individual data are 'k'.
 
 ```
 
 
 ### Simulations
 
+```{r}
+# Create simulated data using two normal distributions
+
+# Fixed effects
+## Normal 1 : mu = 3, sigma =0
+mu1 <-  3
+n1 <- 30
+d1 <- rnorm(n1,mu1)
+
+## Normal 2 : mu = 8, sigma =0
+mu2 <-  8
+n2 <- 30
+d2 <- rnorm(n2,mu2)
+
+# Random effects
+
+
+```
+
+
+```{r}
+## Using the Sommer package for EM
+
+## Import phenotypic data on inbred performance
+## Full data
+library(sommer)
+data("DT_cornhybrids")
+hybrid2 <- DT_cornhybrids # extract cross data
+A <- GT_cornhybrids # extract the var-cov K
+############################################
+############################################
+## breeding values with 3 variance components
+############################################
+############################################
+y <- hybrid2$Yield# w = 1 if y > 0#hybrid2$Yield
+X1 <- model.matrix(~ Location, data = hybrid2);dim(X1)
+#Treatment /control group #model.matrix(~ Location, data = hybrid2);dim(X1)
+Z1 <- model.matrix(~ GCA1 -1, data = hybrid2);dim(Z1)
+Z2 <- model.matrix(~ GCA2 -1, data = hybrid2);dim(Z2)
+Z3 <- model.matrix(~ SCA -1, data = hybrid2);dim(Z3)
+
+K1 <- A[levels(hybrid2$GCA1), levels(hybrid2$GCA1)]; dim(K1)
+## Realized IBS relationships for set of parents 1
+K2 <- A[levels(hybrid2$GCA2), levels(hybrid2$GCA2)]; dim(K2)
+## Realized IBS relationships for set of parents 2
+S <- kronecker(K1, K2) ; dim(S)
+## Realized IBS relationships for cross (as the Kronecker product of K1 and K2)
+rownames(S) <- colnames(S) <- levels(hybrid2$SCA)
+
+ETA <- list(list(Z=Z1, K = K1), list(Z=Z2, K = K2))#, list(Z=Z3))#list(list(Z=Z1, K=K1), list(Z=Z2, K=K2))#, list(Z=Z3, K=S))
+ans <- EM(y=y, ZETA=ETA, iters=50)
+ans$var.comp
+
+# compare with NR method
+mix1 <- mmer(Yield~1, random=~vs(GCA1,Gu=K1)+vs(GCA2,Gu=K2), data=hybrid2)
+summary(mix1)$varcomp
+
+
+
+```
+
+##Try coding for the rat example
+
+```{r}
+
+## Initialize the values of params
+
+## Model 1
+
+
+## Model 2
+
+mu1 <- 1
+mu2 <- 1
+s1 <- 0.5
+s2 <- 1
+pi1 <- sum(dat$W == 0 )/length(dat$W)
+pi2 <- sum(dat$W == 1 )/length(dat$W)
+
+# modified sum only considers finite values
+sum.finite <- function(x) {
+  sum(x[is.finite(x)])
+}
+
+Q <- 0
+# starting value of expected value of the log likelihood
+Q[2] <- 100#sum.finite(log(pi1)+log(dnorm(x, mu1, sigma1))) + sum.finite(log(pi2)+log(dnorm(x, mu2, sigma2)))
+
+k <- 2
+
+while (abs(Q[k]-Q[k-1])>=1e-6) {
+  # E step
+  
+  t <-  s1^2 * 
+  
+  
+  # M step
+  pi1 <- sum.finite(p1) / length(x)
+  pi2 <- sum.finite(p2) / length(x)
+  
+  mu1 <- sum.finite(p1 * x) / sum.finite(p1)
+  mu2 <- sum.finite(p2 * x) / sum.finite(p2)
+  
+  sigma1 <- sqrt(sum.finite(p1 * (x-mu1)^2) / sum.finite(p1))
+  sigma2 <- sqrt(sum.finite(p2 * (x-mu2)^2) / sum.finite(p2))
+  
+  p1 <- pi1 
+  p2 <- pi2
+  
+  k <- k + 1
+  Q[k] <- sum(log(comp.sum))
+}
+
+
+
+
+```
+
+
+
+
+
 ## Current advancements 
 
 ## Conclusion
 
 ## References
+https://rpubs.com/H_Zhu/246450
+
+https://ecommons.cornell.edu/bitstream/handle/1813/31608/BU-1037-MD.pdf;jsessionid=F56250DB8EF10F2BB7E4F579EB98D211?sequence=1
 
