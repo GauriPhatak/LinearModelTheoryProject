@@ -174,13 +174,6 @@ $$\int_{-\infty}^\infty \alpha\Psi(\alpha;n,s,\mu,\sigma)\phi(\alpha)d(\alpha) =
 ## installing nlmixer package to get the data
 #install.packages("nlmixr")
 # SAS package explaining data: https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_nlmixed_sect040.htm
-library(nlmixr)
-library(lme4)
-data("rats")
-dat <- rats
-head(dat)
-dat$W <- (dat$m - dat$x) > 0
-
 ## Step 1: set ini  initial values
 
 ## Put this in while loop till convergence.
@@ -189,11 +182,10 @@ dat$W <- (dat$m - dat$x) > 0
 ## Step3: Maximization step
 # 
 dat$IDFac <- factor(dat$ID)
-bFit <- glmer(W ~ x1+(1|IDFac), data = dat[dat$x1 == 1,],family = binomial(link= "probit"))
+
+bFit <- glmer(W ~ x1+(1|IDFac), data = dat,family = binomial(link= "probit"))
 summary(bFit)
 
-dat$W <- as.numeric(dat$W)
-dat$diff <- dat$m - dat$x
 glmmFit <- glmm(W ~ trt, list(W ~ IDFac), varcomps.names = c("IDFac"), data  = dat, family.glmm = binomial.glmm, m =100000)
 summary(glmmFit)
 
@@ -276,14 +268,42 @@ summary(mix1)$varcomp
 ##Try coding for the rat example
 
 ```{r}
+library(nlmixr)
+library(lme4)
+library(splitstackshape)
+library(earth)
+library(cubature)
+
+data("rats")
+dat <- rats
+head(dat)
+dat$W <- (dat$m - dat$x) > 0
+dat$W <- as.numeric(dat$W)
+dat$diff <- dat$m - dat$x
 
 ## Initialize the values of params
+## X matrix : diag matrix of number of groups so 2 groups in weil data case.
+dato <- dat
+dat <- dat[dat$trt == "t",]
+X <- as.matrix(expandRows(as.data.frame(cbind(dat$x2, dat$m)), "V2"))
 
-## Model 1
+## Z matrix : diag matrix of number of values within each group.
+## values greater than or eq to 1
+Trt <- factor(x=rep(x=dat$ID, times=dat$m))
+Z <- model.matrix(~Trt-1, data=Trt)
 
+## Output y
+y <- expand.bpairs(x+diff ~., dat)
+yDat <- as.numeric(y$x)
 
-## Model 2
+## Calculate V
 
+V <- function(theta, Z){
+  val <- diag(1, nrow=(length(Z[,1]))) + theta * Z %*% t(Z)
+  return(val)
+}
+
+## initial params
 mu1 <- 1
 mu2 <- 1
 s1 <- 0.5
@@ -291,44 +311,68 @@ s2 <- 1
 pi1 <- sum(dat$W == 0 )/length(dat$W)
 pi2 <- sum(dat$W == 1 )/length(dat$W)
 
-# modified sum only considers finite values
-sum.finite <- function(x) {
-  sum(x[is.finite(x)])
-}
+
+## Expectation step
 
 Q <- 0
-# starting value of expected value of the log likelihood
-Q[2] <- 100#sum.finite(log(pi1)+log(dnorm(x, mu1, sigma1))) + sum.finite(log(pi2)+log(dnorm(x, mu2, sigma2)))
-
 k <- 2
 
-while (abs(Q[k]-Q[k-1])>=1e-6) {
-  # E step
+ll <- function(n, V, mu, X){
+  op <- (-1*n/2*log(det(V))- t(X - mu) %*% solve(V) %*% (X-mu))[1,1]
+  return(op)
+}
+
+f <- function(x, mu1, Vinv, yDat) { 
+  x * exp((-0.5 *t(x - X * mu1) %*% Vinv %*% (x - X * mu1)) +  
+                               log(pnorm(X*mu1))*yDat)
+  }
   
-  t <-  s1^2 * 
+f2 <- function(x,mu1, Vinv, yDat ) { 
+  x^2 * exp((-0.5 *t(x - X * mu1) %*% Vinv %*% (x - X * mu1)) +  
+                               log(pnorm(X*mu1))*yDat)
+  }
   
+
+Q[2] <- ll(length(yDat), V(s1,Z), mean(yDat), yDat) 
+ 
+while (abs(Q[k]-Q[k-1])>=1e-20){
   
-  # M step
-  pi1 <- sum.finite(p1) / length(x)
-  pi2 <- sum.finite(p2) / length(x)
-  
-  mu1 <- sum.finite(p1 * x) / sum.finite(p1)
-  mu2 <- sum.finite(p2 * x) / sum.finite(p2)
-  
-  sigma1 <- sqrt(sum.finite(p1 * (x-mu1)^2) / sum.finite(p1))
-  sigma2 <- sqrt(sum.finite(p2 * (x-mu2)^2) / sum.finite(p2))
-  
-  p1 <- pi1 
-  p2 <- pi2
-  
-  k <- k + 1
-  Q[k] <- sum(log(comp.sum))
+  ## Expectation step
+  Vinv <- solve(V(s1, Z))
+  mid <- Vinv %*% Z %*% t(Z) %*% Vinv
+  muy_w <- adaptIntegrate(f,  lower = rep(-Inf, length(yDat)), upper = rep(-Inf, length(yDat)),
+                          mu1, Vinv, yDat)
+  mid2 <- muy_w$integral  - X %*% mu1
+  Vy_w <-adaptIntegrate(f2,  lower = rep(-Inf, length(yDat)), upper = rep(-Inf, length(yDat)),
+                        mu1, Vinv, yDat)
+  t1 <- s1^2 * sum(diag( mid * Vy_w$integral ))+
+  s1^2 * t(mid2) %*% mid %*% mid2+
+  sum(diag(s1* diag(1, nrow = dim(Z)[2]) - s1^2 * t(Z) %*% Vinv %*% Z ))
+    
+  ## Maximization step
+  s1 <- (t1 / length(yDat))[1,1]
+  mu1 <- sum(solve(t(X) %*% Vinv %*% X) %*% t(X) %*% Vinv * muy_w$integral) / length(mu1)
+  k <- k+1
+  Q[k] <-  ll(length(yDat), V(s1,Z), mu1 , yDat) 
+    
 }
 
 
 
 
 ```
+
+
+
+proc nlmixed data=rats;
+      parms t1=1 t2=1 s1=.05 s2=1;
+      eta = x1*t1 + x2*t2 + alpha;
+      p   = probnorm(eta);
+      model x ~ binomial(m,p);
+      random alpha ~ normal(0,x1*s1*s1+x2*s2*s2) subject=litter;
+      estimate 'gamma2' t2/sqrt(1+s2*s2);
+      predict p out=p;
+   run;
 
 
 
@@ -342,4 +386,7 @@ while (abs(Q[k]-Q[k-1])>=1e-6) {
 https://rpubs.com/H_Zhu/246450
 
 https://ecommons.cornell.edu/bitstream/handle/1813/31608/BU-1037-MD.pdf;jsessionid=F56250DB8EF10F2BB7E4F579EB98D211?sequence=1
+
+
+
 
