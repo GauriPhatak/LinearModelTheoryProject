@@ -3,12 +3,20 @@ title: "Maximum Likelihood Variance Components for Binary Data"
 author: "Gauri Phatak"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+library(nlmixr)
+library(lme4)
+library(splitstackshape)
+library(earth)
+library(cubature)
+
 ```
 
 ## Introduction
@@ -20,59 +28,62 @@ The focus of this paper is on variance estimation in mixed models and BLUP of ob
 
 Before this paper, beta binomial models were used for correlated binary data. But they do not generalize easily to multiple random effects. There are quasi likelihood methods proposed that focus on fixed effects and treat random effects as nuisance parameters. This paper considers a correlated probit model. It is similar to a logit normal models. But, the logit models were intended only for longitudinal data setting.
 
-Benefits of correlated probit models over others:
-
-1. Beta-binomial does not generalize easily to multiple random effects
-2. Generalization of quasi likelihood methods focuses on fixed effects and only estimates var and covar as nuisance params.
-3. prentice considers to estimating var covar but models a difficult to generalize.
-
 The model proposed here is simplified version of threshold model. 
 
 ## Model
 
 ### What is threshold model?
 
-Suppose for given explanatory variables there is a latent variable U that has continous distribution.  Now suppose there is another variable Y which is a binary variable. A binary response Y = 1 is recorded only when U > threshold. Without loss of generality the threshold is set to 0.   
+Suppose for given explanatory variables there is a latent variable U that has continuous distribution.  Now suppose there is another variable Y which is a binary variable. A binary response Y = 1 is recorded only when U > threshold. Without loss of generality the threshold is set to 0.   
 
 ### What is probit -normal model?
 
+A probit model is used to determine the likelihood of an item will fall into a particular category. Probit models are used to mode standard normal CDFs.
+
 As an example, 
 $$ U \sim N(x'\beta, 1) then, $$
+
+But U here is an unobserved continous variable. It is a latent variable, but the effect of this variable Y is observed which is a binary variable.
+
+The output from the model can be interpreted by using cdf of standard normal.
+
 $$\theta_i = P(Y=1|x_i) = \Phi (x_i' \beta)$$
 $$\Phi(t) = (2\pi)^{-1/2}\int^t_{-\infty}exp(-\frac{1}{2}z^2)dz$$
-
-
-
-### What is logit model?
-
-#### What is logit normal model?
 
 Threshold model,
 
 $$Y = X\beta +Z u +\epsilon,$$
 $$ W_i = I_{Y_i >0}, i = 1,2,...,n,$$
 $$Where, u \sim N(0,D) \;\;\;\; \epsilon \sim N(0, I),$$
+
+Here $\epsilon$ is standard normal since this lends to describing probability of $P(Y=1|X) = \Phi(X^t\beta)$ where $\Phi$ is cdf of standard normal.
+
 $$ X \equiv diag\{1_{m_i}\} , i = 1,2,...,G$$
 
-$$Z \equiv diag\{1_{n_{ij}}, j = 1,2,....m_i\}\;\; and \;\; \beta = \mu$$
+$$Z \equiv diag\{1_{n_{ij}}\}, j = 1,2,....m_i\;\; and \;\; \beta = \mu$$
 u and $\epsilon$ are independent
 This model has restriction that negative correlations cannot be model.
+The primary interest is estimation of D parameter i.e. the variances of random effects. 
 
-the primary interest is estimation of D parameter i.e. the variances of random effects. 
+### What is logit model?
+
+Logit model is used to model the odds of success of an event. Logit model uses logistic/sigmoid function as opposed to std normal cdf used by the probit model. This is used to model Logistic regression. 
+
+If Y is a random variable with a normal distribution and P is a standard logistic function, X = P(Y) has a logit-normal distribution and Y = logit(X) = $\frac{X}{1-X}$.
 
 Advantages of probit-normal model over logit-normal model:
 
-1. with a single random effect and only one observation per level of random effect the proposed model reduces to usual probit model (with a different error term for $\epsilon$). This is not the same for logit models. 
+1. With a single random effect and only one observation per level of random effect the proposed model reduces to usual probit model (with a different error term for $\epsilon$). This is not the same for logit models. 
 
-2. The marginal mean of $\W_i$ has simple representation,
+2. The marginal mean of $W_i$ has simple representation,
 
 $$E[W_i] = \Phi(x_i^t\beta(z_i^tDz_i +I)^{-1/2})$$
-3. The EM algorithm takes form close to continuous normal linear model.
+3. The EM algorithm is very close to continuous normal linear model. This is the most important advantage since it facilitates the use of Gibbs sampling to find the ML and REML estimates. 
 
 Going forward the paper follows standard ANOVA model for variance components estimation,
 
 $$Y = X \beta +\sum_{i=1}^r Z_i u_i +\epsilon$$
-$$u_i \sim independently N_{q_r}(0,\theta_i I)$$
+$$u_i \sim  N_{q_r}(0,\theta_i I)\;\;\; and \;\;\; \epsilon \sim N(0,I)$$
 
 ## MLE and EM for MLE and REML
 
@@ -80,25 +91,26 @@ $$u_i \sim independently N_{q_r}(0,\theta_i I)$$
 
 Reasons for using EM algorithm:
 
-1. Offers framework for estimation sismilar to Normal theory case. *HOW*
+1. Offers framework for estimation similar to Normal theory case.
 
-2. Auto contraints for iterates to be within parameter space. *HOW*
+2. Auto constraints for iterates to be within parameter space.
 
-3. Natural extention to REML estimation. *HOW*
+3. Natural extension to REML estimation.
 
-4. Converges from a wider range of starting values as compared to quasi-Newton algorithm. *Show this in simulation*.
+4. Converges from a wider range of starting values as compared to quasi-Newton algorithm. 
 
-Maximization Step:
-ML estimates for $\theta_i$ are $\tilde{\theta_i} = \frac{u_i^t u_i}{q_i}$  and estimates for $\beta$ is $(X^t\hat{V^{-1}X})^{-1}X^t\hat{V^{-1}}Y$, where $\hat{V^{-1}}$ is a $var(Y)$ with $\theta_i$ replaced by $\hat{\theta_i}$ and,
+
+*For the Maximization step*, 
+Complete data is $(Y, u_i) \;\;\; where\;\;\; i =1,2,3...r$ with r random variables. The maximum likelihood estimate for $\theta_i$ is $\frac{u_i^tu_i}{q_i}$ where $q_i$ is total number of levels within a random effect variable. The MLe for $\beta$ i.e. the fixed effects is $(X^t\hat{V}^{-1}X)^{-1}X^t\hat{V}^{-1}Y$. Here $\hat{V}^{-1}$ is the variance of Y calculated using $\hat{\theta}_i$.
 
 $$var(Y) = I + \sum^c_{i=1}\theta_iZ_iZ_i^t$$
 
-Expectation Step:
+*For the Expectation Step*,
 
 $E[Y|W]$ and $E[u_i^tu_i|W]$ can be calculated using the below,
 
 $$E[u_i^tu_i|W] = E[E[u_i^tu_i|Y] |W]$$
-To calculate the inner expectation using multivariate normal distribution *How can this be aplicable?*
+To calculate the inner expectation using multivariate normal distribution since the random variables are normally distributed.
 
 $$E[u_i^tu_i|Y] = \theta^2_i(Y-X\beta)^tV^{-1}Z_iZ_i^tV^{-1}(Y-X\beta) + tr(\theta_i I - \theta^2_i Z_i^t V^{-1}Z_i)$$
 Using the equation above to calculate $E[u_i^tu_i|W]$  we get,
@@ -106,7 +118,7 @@ Using the equation above to calculate $E[u_i^tu_i|W]$  we get,
 $$E[u_i^tu_i|W] = \theta_i^2 trV^{-1}Z_iZ_i^tV^{-1}V_{Y|W} +$$
 $$\theta_i^2 (\mu_{Y|W} - X\beta)^tV^{-1}Z_iZ_i^tV^{-1} (\mu_{Y|W} - X\beta)+ $$
 $$tr(\theta_i I - \theta_i^2Z_i^tV^{-1}Z_i)$$
-Here, $V_{Y|W} = Var(Y|W)$ and $\mu_{Y|W} = E[Y|W]$. These are the only extra computations needed for ML estimation for discrete data.
+Here, $V_{Y|W} = Var(Y|W)$ and $\mu_{Y|W} = E[Y|W]$. These are the only extra computations needed for ML estimation for discrete data. These can be calculated using numerical integration or Gibbs sampling. 
 
 ### EM for ML estimation
 
@@ -120,7 +132,8 @@ Calculating the expectation step for m.
 
 $$\hat{t}_i^{(m)} = \theta_i^{(m)2} trV^{(m)-1}Z_iZ_i^tV^{(m)-1}V_{Y|W}^{(m)} +$$
 $$\theta_i^{(m)2} (\mu_{Y|W}^{(m)} - X\beta^{(m)})^tV^{(m)-1}Z_iZ_i^tV^{(m)-1} (\mu_{Y|W}^{(m)} - X\beta^{(m)})+ $$
-$$tr(\theta_i^{(m)} I - \theta_i^{(m)2}Z_i^tV^{(m)-1}Z_i)$$$
+$$tr(\theta_i^{(m)} I - \theta_i^{(m)2}Z_i^tV^{(m)-1}Z_i)$$
+
 3. Maximization steps:
 
 $$\theta_i^{m+1} = \hat{t}^{(m)}_i / q_i$$
@@ -135,7 +148,7 @@ The implementation of EM algorithm is identical to the continuous case.
 
 ### EM for REML estimation
 
-For REML we try and maximize the portion of likelihood that depends only on the variance and not on the fixed effects components. Here they have treated fixed effects as random effects *What are the consequences of doing this?* for which variance tends to infinity. Setting prior information for fixed effects be 0, the expected value can be calculated as:
+For REML we try and maximize the portion of likelihood that depends only on the variance and not on the fixed effects components. Here they have treated fixed effects as random effects for which variance tends to infinity *How?*. Setting prior information for fixed effects be 0, the expected value can be calculated as:
 
 $$E[u_i^tu_i|W] = \theta_i^2 trPZ_iZ_i^tPV_{Y|W} +\theta_i^2 \mu_{Y|W}^tPZ_iZ_i^tP\mu_{Y|W}+tr(\theta_i I - \theta_i^2Z_i^tPZ_i)$$
 Where $P = V^{-1} - V^{-1}X(X^tV^{-1}X)^{-1}X^tV^{-1}$.
@@ -154,16 +167,28 @@ $$\theta^{(m+1)} = \hat{t}^{m}_i / q_i$$
 4. if convergence is reached $\hat{\theta}=\theta^{m+1}$ else increment m by 1 and go back to step 2.
 
 
+For predicting the value of random effects BLUP methodology is used. Hence here for continous data $E[u_i|Y]=\hat{\theta}^2_iZ^t_i\hat{V}^{-1}(Y-X\hat{\beta})$ and for discrete data $E[u_i|Y]=\hat{\theta}^2_iZ^t_i\hat{V}^{-1}(\hat{\mu}_{Y|W}-X\hat{\beta})$. As we can see $Y$ is replaced by $\hat{\mu}_{Y|W}$
+
 ## Examples
 
 ### The Weil Data
 
-$$Y_{ij} = \mu_i + u_{ij} + \epsilon_{ijk} \;\;and\;\; W_{ij}  = I_{Y_{ij} > 0}$$
+$$Y_{ijk} = \mu_i + u_{ij} + \epsilon_{ijk} \;\;and\;\; W_{ij}  = I_{Y_{ij} > 0}$$
 
-The Likelihood function is:
-$$\int_{-\infty}^\infty \alpha\Psi(\alpha;n,s,\mu,\sigma)\phi(\alpha)d(\alpha) = \frac{}{}$$
+Here Y is the unobserved latent variables and W is indicator variable. 
 
-```{r}
+The models for the two groups i.e. the treatment and control group are fit separately. Hence the model for treatment is,
+
+$$Y_{tjk} = \mu_t + u_{tj} + \epsilon_{tjk} \;\;and\;\; W_{tj}  = I_{Y_{tj} > 0}$$
+
+and model for control is,
+ 
+$$Y_{cjk} = \mu_c + u_{cj} + \epsilon_{cjk} \;\;and\;\; W_{cj}  = I_{Y_{cj} > 0}$$
+
+Using EM for ML estimation the estimates for treatment group $\hat{\mu}_t = 1.306$ and $\hat{\sigma}_t =0.2403$ and estimates for control group is $\hat{\mu}_t = 0.946$ and $\hat{\sigma}_t =1.023$. This output was compared with output from quasi-newton algorithm for approximation.It was found that for simpler models the EM algorithms converge from wider ranges. 
+
+
+```{r, include=FALSE}
 #c 13 13   c 12 12   c  9  9   c  9  9   c  8  8   c  8  8   c 13 12   c 12 11
 #c 10  9   c 10  9   c  9  8   c 13 11   c  5  4   c  7  5   c 10  7   c 10  7
 #t 12 12   t 11 11   t 10 10   t  9  9   t 11 10   t 10  9   t 10  9   t  9  8
@@ -181,98 +206,42 @@ $$\int_{-\infty}^\infty \alpha\Psi(\alpha;n,s,\mu,\sigma)\phi(\alpha)d(\alpha) =
 
 ## Step3: Maximization step
 # 
-dat$IDFac <- factor(dat$ID)
-
-bFit <- glmer(W ~ x1+(1|IDFac), data = dat,family = binomial(link= "probit"))
-summary(bFit)
-
-glmmFit <- glmm(W ~ trt, list(W ~ IDFac), varcomps.names = c("IDFac"), data  = dat, family.glmm = binomial.glmm, m =100000)
-summary(glmmFit)
-
-
-## Using the EM function
-
-EMfit <-  EM(y = dat$W,
-             X = model.matrix(~ dat$trt-1),
-             ZETA = list(Z = model.matrix(~ dat$IDFac -1)))
-
+# dat$IDFac <- factor(dat$ID)
+# 
+# bFit <- glmer(W ~ x1+(1|IDFac), data = dat,family = binomial(link= "probit"))
+# summary(bFit)
+# 
+# glmmFit <- glmm(W ~ trt, list(W ~ IDFac), varcomps.names = c("IDFac"), data  = dat, family.glmm = binomial.glmm, m =100000)
+# summary(glmmFit)
+# 
+# 
+# ## Using the EM function
+# 
+# EMfit <-  EM(y = dat$W,
+#              X = model.matrix(~ dat$trt-1),
+#              ZETA = list(Z = model.matrix(~ dat$IDFac -1)))
+# 
 ## HOW TO DO JUST THE SIMULATION.
 # For Simulation just set beta0 and beta 1 u1 and u1 and X and Z can be the same vector. this way you have fixed intercept and slope b0 and b1 and random intercept and slope u0 and u1. Using this generate Y and if Y is positive set W to be 1 0 otherwise. Fixed value are 'i' random effect are'j' and individual data are 'k'.
 
 ```
 
+### Salamander data
 
-### Simulations
+The model used here is more complicated as compared to the previous one. Given this, numerical integration to calculate the dependent expectation and variance is not possible. In this paper they used Gibbs sampling to calculate the values and use in EM algorithm. This model uses 2 crossed random effects and 4 fixed effects.
 
-```{r}
-# Create simulated data using two normal distributions
+this data consists of 120 data points for 3 experiments. $W_i=1$ if $i^{th}$ mating is successful. There are 20 males and 20 females of two different species R and W. ten of each species of each gender. Female and male form the two random effects. The four crosses i.e. Rf-Rm, Rf-Wm, Wf-Rm, Wf-Wm are the fixed effects. The model can be expressed as,
 
-# Fixed effects
-## Normal 1 : mu = 3, sigma =0
-mu1 <-  3
-n1 <- 30
-d1 <- rnorm(n1,mu1)
+$$Y=X\beta+Z_fU_f+Z_mU_m+\epsilon$$
+$$Here, \;\; W_i = I_{Y_i >0}\;\; and,$$
+$$U_{f} \sim N_{20}(0,\theta_fI) \;\;\;, \;\;\; U_{m} \sim N_{20}(0,\theta_mI) \;\;\; and \;\;\; \epsilon \sim N_{120}(0,I)$$
 
-## Normal 2 : mu = 8, sigma =0
-mu2 <-  8
-n2 <- 30
-d2 <- rnorm(n2,mu2)
-
-# Random effects
-
-
-```
-
-
-```{r}
-## Using the Sommer package for EM
-
-## Import phenotypic data on inbred performance
-## Full data
-library(sommer)
-data("DT_cornhybrids")
-hybrid2 <- DT_cornhybrids # extract cross data
-A <- GT_cornhybrids # extract the var-cov K
-############################################
-############################################
-## breeding values with 3 variance components
-############################################
-############################################
-y <- hybrid2$Yield# w = 1 if y > 0#hybrid2$Yield
-X1 <- model.matrix(~ Location, data = hybrid2);dim(X1)
-#Treatment /control group #model.matrix(~ Location, data = hybrid2);dim(X1)
-Z1 <- model.matrix(~ GCA1 -1, data = hybrid2);dim(Z1)
-Z2 <- model.matrix(~ GCA2 -1, data = hybrid2);dim(Z2)
-Z3 <- model.matrix(~ SCA -1, data = hybrid2);dim(Z3)
-
-K1 <- A[levels(hybrid2$GCA1), levels(hybrid2$GCA1)]; dim(K1)
-## Realized IBS relationships for set of parents 1
-K2 <- A[levels(hybrid2$GCA2), levels(hybrid2$GCA2)]; dim(K2)
-## Realized IBS relationships for set of parents 2
-S <- kronecker(K1, K2) ; dim(S)
-## Realized IBS relationships for cross (as the Kronecker product of K1 and K2)
-rownames(S) <- colnames(S) <- levels(hybrid2$SCA)
-
-ETA <- list(list(Z=Z1, K = K1), list(Z=Z2, K = K2))#, list(Z=Z3))#list(list(Z=Z1, K=K1), list(Z=Z2, K=K2))#, list(Z=Z3, K=S))
-ans <- EM(y=y, ZETA=ETA, iters=50)
-ans$var.comp
-
-# compare with NR method
-mix1 <- mmer(Yield~1, random=~vs(GCA1,Gu=K1)+vs(GCA2,Gu=K2), data=hybrid2)
-summary(mix1)$varcomp
-
-
-
-```
+X is the fixed effect matrix, $Z_f$ is the random effects matrix for female and $Z_m$ is the random effects matrix for male and $\beta = (\beta_{R/R},\beta_{R/W},\beta_{W/R},\beta_{W/W})$. 
+the final estimates for the parameter values are: $\hat{\beta}_{R/R} = 0.819,\hat{\beta}_{R/W}=0.538,\hat{\beta}_{W/R}=-0.978,\hat{\beta}_{W/W}=0.707, \hat{\theta}_f = 0.6 \;\; and \;\; \hat{\theta}_m = 0.067$
 
 ##Try coding for the rat example
 
 ```{r}
-library(nlmixr)
-library(lme4)
-library(splitstackshape)
-library(earth)
-library(cubature)
 
 data("rats")
 dat <- rats
@@ -303,6 +272,21 @@ V <- function(theta, Z){
   return(val)
 }
 
+ll <- function(n, V, mu, X){
+  op <- (-1*n/2*log(det(V))- t(X - mu) %*% solve(V) %*% (X-mu))[1,1]
+  return(op)
+}
+
+f <- function(x, mu1 ,Vinv, yDat) { 
+  x * exp((-0.5 *t(x - X * mu1) %*% Vinv %*% (x - X * mu1)) +  
+                               log(pnorm(X*mu1))*yDat)
+  }
+  
+f2 <- function(x,mu1, Vinv, yDat ) { 
+  x^2 * exp((-0.5 *t(x - X * mu1) %*% Vinv %*% (x - X * mu1)) +  
+                               log(pnorm(X*mu1))*yDat)
+  }
+  
 ## initial params
 mu1 <- 1
 mu2 <- 1
@@ -313,80 +297,74 @@ pi2 <- sum(dat$W == 1 )/length(dat$W)
 
 
 ## Expectation step
-
+s <- s1
+mu <- mu1
 Q <- 0
 k <- 2
 
-ll <- function(n, V, mu, X){
-  op <- (-1*n/2*log(det(V))- t(X - mu) %*% solve(V) %*% (X-mu))[1,1]
-  return(op)
-}
-
-f <- function(x, mu1, Vinv, yDat) { 
-  x * exp((-0.5 *t(x - X * mu1) %*% Vinv %*% (x - X * mu1)) +  
-                               log(pnorm(X*mu1))*yDat)
-  }
-  
-f2 <- function(x,mu1, Vinv, yDat ) { 
-  x^2 * exp((-0.5 *t(x - X * mu1) %*% Vinv %*% (x - X * mu1)) +  
-                               log(pnorm(X*mu1))*yDat)
-  }
-  
 
 Q[2] <- ll(length(yDat), V(s1,Z), mean(yDat), yDat) 
  
-while (abs(Q[k]-Q[k-1])>=1e-20){
+iter  = 0
+
+while (abs(Q[k]-Q[k-1])>=1e-6){
+  
+  iter <- iter +1
   
   ## Expectation step
   Vinv <- solve(V(s1, Z))
   mid <- Vinv %*% Z %*% t(Z) %*% Vinv
-  muy_w <- adaptIntegrate(f,  lower = rep(-Inf, length(yDat)), upper = rep(-Inf, length(yDat)),
+  muy_w <- adaptIntegrate(f,  lower = rep(0, length(yDat)), upper = rep(1, length(yDat)),
                           mu1, Vinv, yDat)
-  mid2 <- muy_w$integral  - X %*% mu1
-  Vy_w <-adaptIntegrate(f2,  lower = rep(-Inf, length(yDat)), upper = rep(-Inf, length(yDat)),
+  
+  #print("muy_w")
+  #print(muy_w)
+  mid2 <- muy_w$integral  - X * mu1
+  Vy_w <-adaptIntegrate(f2,  lower = rep(0, length(yDat)), upper = rep(1, length(yDat)),
                         mu1, Vinv, yDat)
   t1 <- s1^2 * sum(diag( mid * Vy_w$integral ))+
   s1^2 * t(mid2) %*% mid %*% mid2+
   sum(diag(s1* diag(1, nrow = dim(Z)[2]) - s1^2 * t(Z) %*% Vinv %*% Z ))
     
   ## Maximization step
-  s1 <- (t1 / length(yDat))[1,1]
+  s1 <- (t1 / length(dat$ID))[1,1] 
+  s[k] <- s1
+  Vinv <- solve(V(s1, Z))
   mu1 <- sum(solve(t(X) %*% Vinv %*% X) %*% t(X) %*% Vinv * muy_w$integral) / length(mu1)
+  mu[k] <- mu1
+  #print("mu1")
+  #print(mu1)
   k <- k+1
   Q[k] <-  ll(length(yDat), V(s1,Z), mu1 , yDat) 
+  
+  if(iter > 500){
+    break
+  }
     
 }
 
 
-
-
 ```
 
+The Output from SAS which uses Newton-Rhapson approximation method is as given below,
+
+As we can see it is very similar to the output from the EM method.
 
 
-proc nlmixed data=rats;
-      parms t1=1 t2=1 s1=.05 s2=1;
-      eta = x1*t1 + x2*t2 + alpha;
-      p   = probnorm(eta);
-      model x ~ binomial(m,p);
-      random alpha ~ normal(0,x1*s1*s1+x2*s2*s2) subject=litter;
-      estimate 'gamma2' t2/sqrt(1+s2*s2);
-      predict p out=p;
-   run;
+## Conclusion and succesive work
 
+This paper gives a framework for ML and REML estimation for Binary data using EM algorithm. It is similar to EM for continuous data. The limiting factor in this paper is using random effects as uncorrelated. Extension of the work done in the paper can be seen in paper by Chan and Kuk. In their paper they introduce an estimation method for mixed models with correlated random effects. 
 
-
-
-
-## Current advancements 
-
-## Conclusion
 
 ## References
 https://rpubs.com/H_Zhu/246450
 
 https://ecommons.cornell.edu/bitstream/handle/1813/31608/BU-1037-MD.pdf;jsessionid=F56250DB8EF10F2BB7E4F579EB98D211?sequence=1
 
+
+https://www.maths.usyd.edu.au/u/jchan/GLM/1997Biometric.pdf
+
+https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_nlmixed_sect040.htm
 
 
 
