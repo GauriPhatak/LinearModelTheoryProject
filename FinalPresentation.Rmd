@@ -1,0 +1,28 @@
+---
+title: "Maximum Likelihood Variance Components Estimation for Binary Data"
+author: "Gauri Phatak"
+date: '2022-06-08'
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+## Model
+
+## Expectation Maximization
+
+## Maximum Likelihood Estimation
+
+## Restricted Maximum Likelihood Estimation
+
+## Example: Weil Data
+
+## Example : Salamander Data
+
+## Succesive Work for Correlated Random Effects Model
+
+## Conclusion.
