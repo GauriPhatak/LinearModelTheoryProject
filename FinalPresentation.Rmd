@@ -11,10 +11,11 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Introduction
 
-* In this paper a class of probit-normal models is introduced.
-* They describe ML and REML estimations using EM algorithm.
+* The McCulloch paper introduces a class of probit-normal models.
+* They describe ML and REML estimations using EM algorithm for binary response models.
 * Till this point ML estimation was described only for nested random effects model.
-* Incorporation of random effects is useful to account for heterogeneity, over dispersion and intra-cluster correlation.
+* The 2nd paper by Chan and Kuk which is an extension of the McCulloch paper introduces methods for handling models with correlated random effects.
+
 
 ## Motivation
 
@@ -32,7 +33,7 @@ $$ W_i = I_{Y_i >0}, i = 1,2,...,n,$$
 $$Where, u \sim N(0,D) \;\;\;\; \epsilon \sim N(0, I),$$
 
 
-## Model : Independent Random Effects
+## Model : Correlated Random Effects
 
 $$Y = X\beta + \sum^{R}_{r=1}Z_r u_r +\epsilon$$
 
@@ -120,10 +121,11 @@ $$\theta^{(m+1)} = \hat{t}^{m}_i / q_i$$
 $$Y_{ijk} = \mu_i + u_{ij} + \epsilon_{ijk} \;\;and\;\; W_{ij}  = I_{Y_{ij} > 0}$$
 
 Here Y is the unobserved latent variables and W is indicator variable. 
-The models for the two groups i.e. the treatment and control group are fit separately.
-The output was compared with output from quasi-newton algorithm for approximation.
-It was found that for simpler models the EM algorithms converge from wider ranges. 
-![Estimation Output for Weil Data](WeilDat.png)
+The models for the two groups i.e. the treatment(28) and control(207) group are fit separately.
+$$\hat{\mu}_1 = 1.306, \hat{\sigma}_1 = 0.240, \hat{\mu}_2 = 0.946, \hat{\sigma}_2 = 1.023 $$
+
+
+![Estimation Output for Weil Data SAS](WeilDat.png)
 
 
 ## Example : Salamander Data
@@ -135,12 +137,28 @@ $$U_{f} \sim N_{20}(0,\theta_fI) \;\;\;, \;\;\; U_{m} \sim N_{20}(0,\theta_mI) \
 
 ![Estimation Output for Salamander Data](salamander1.png)
 
+## Example : Salamander Data
+
+![](salamander4.png)
 
 ## Example: Salamander Data
 Correlated Random Effects
+
+Model 1: Correlated effects for a same salamanders used in experiment 1 and 2
+
 $$Y=X\beta+Z_{f12}U_{f12}+Z_{m12}U_{m12}+Z_{f3}U_{f3}+Z_{m3}U_{m3}+\epsilon$$
 
-![](salamander2.png)
+Model 2: Species specific random effects added.
+$$
+\begin{gathered}
+Y=X\beta+Z_{fR12}U_{fR12}+Z_{mR12}U_{mR12}+Z_{fW12}U_{fW12}+ \\ 
+Z_{mW12}U_{mW12}+ Z_{fR3}U_{fR3}+Z_{mR3}U_{mR3}+Z_{fW3}U_{fW3}+Z_{mW3}U_{mW3}+\epsilon
+\end{gathered}
+$$
+
+## Example: Salamander data goodness-of-fit
+
+![](salamander3.png)
 
 
 ## Succesive Work for Correlated Random Effects Model
@@ -162,5 +180,18 @@ The MLE of $\hat{\rho}_c$ can be obtained my maximizing profile log-likelihood.
 This method can also be extended to multivariate clustered binary data which occurs when studying multiple binary traits for study subjects.
 
 ## Conclusion.
+
+Paper 1: McCulloch
+
+* Fitting model for latent effect threshold model for binary observed response.
+* Introduction to MLE and REML based GLMM fitting for random effects variance parameters.
+* Using Numerical integration or Gibbs sampling 
+* Faster convergence with wider starting values for simpler models as compared to Quasi-Newton method.
+
+Paper 2: Chan and Kuk
+
+* Extending MLE for Probit mixed model with correlated random effects.
+* Introducing MLE for longitudinal and multivariate clustered binary data with non identity error variances. 
+
 
 ## THANK YOU!
