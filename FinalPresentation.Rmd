@@ -1,7 +1,7 @@
 ---
-title: "Maximum Likelihood Variance Components Estimation for Binary Data"
+title: "Maximum Likelihood Variance Components for Binary Data and Introduction to Model with Correlated Random Effects"
 author: "Gauri Phatak"
-date: '2022-06-08'
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: beamer_presentation
 ---
 
@@ -11,18 +11,156 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Introduction
 
-## Model
+* In this paper a class of probit-normal models is introduced.
+* They describe ML and REML estimations using EM algorithm.
+* Till this point ML estimation was described only for nested random effects model.
+* Incorporation of random effects is useful to account for heterogeneity, over dispersion and intra-cluster correlation.
 
-## Expectation Maximization
+## Motivation
+
+* Beta binomial models were used for correlated binary data. But they do not generalize easily to multiple random effects. 
+* There were quasi likelihood methods proposed that focus on fixed effects but they treat random effects as nuisance parameters. 
+* It is similar to a logit normal models. But, the logit models were intended only for longitudinal data setting.
+
+
+## Model : Independent Random Effects
+
+The model proposed here is simplified version of threshold model. 
+
+$$Y = X\beta +Z u +\epsilon,$$
+$$ W_i = I_{Y_i >0}, i = 1,2,...,n,$$
+$$Where, u \sim N(0,D) \;\;\;\; \epsilon \sim N(0, I),$$
+
+
+## Model : Independent Random Effects
+
+$$Y = X\beta + \sum^{R}_{r=1}Z_r u_r +\epsilon$$
+
+Here, $u_r$ is made up of $q_r$ iid random vectors of $k_r$ dimensions each.
+
+\[
+  \begin{bmatrix}
+    Y & u_1 & \cdots & u_R \\
+  \end{bmatrix} ^t
+  \quad
+  \sim  N_{n+Q}( \mu , \Sigma)
+\]
+
+\[\mu = \begin{bmatrix}
+ X\beta \\ 0 \\ \vdots \\ 0
+\end{bmatrix}, \Sigma = \begin{bmatrix}
+      V    & Z_1(I_{q_1} \otimes \Sigma_1) & \cdots & Z_R(I_{q_R} \otimes \Sigma_R) \\
+      (I_{q_1} \otimes \Sigma_1)Z_1^t & (I_{q_1} \otimes \Sigma_1)  &\cdots & 0 \\
+    \vdots & \vdots  &   \ddots     &  \vdots   \\
+      (I_{q_R} \otimes \Sigma_R)Z_R^t  & 0 & \cdots & (I_{q_R} \otimes \Sigma_R) \\
+  \end{bmatrix}
+\]
+
+Here,
+$$V = I_n + \sum^{R}_{r=1} Z_r(I_{q_r} \otimes \Sigma_r)Z_r^t$$
 
 ## Maximum Likelihood Estimation
 
-## Restricted Maximum Likelihood Estimation
+Complete data is $(Y, u_i) \;\;\; where\;\;\; i =1,2,3...r$ with r random variables.
+
+MLE for $\theta_i$ is $\hat{\theta}_i = \frac{u_i^tu_i}{q_i}$
+
+MLE for $\beta$ is $\hat{\beta} = (X^t V^{-1}X)^{-1}X^tV^{-1}Y$
+
+$$E[u_i^tu_i|W] = E[E[u_i^tu_i|Y] |W]= \theta_i^2 trV^{-1}Z_iZ_i^tV^{-1}V_{Y|W} + $$
+$$ \theta_i^2 (\mu_{Y|W} - X\beta)^tV^{-1}Z_iZ_i^tV^{-1} (\mu_{Y|W} - X\beta)+ $$
+$$tr(\theta_i I - \theta_i^2Z_i^tV^{-1}Z_i)$$
+
+## EM: Maximum Likelihood Estimation 
+
+*Uncorrelated Random Effects*
+
+1. Obtaining starting values of $\beta^{(0)}$ and $\theta^{(0)}$ set to $m=0$.
+2. Expectation steps:
+Calculating the expectation step for m.
+$$\hat{t}_i^{(m)} = \theta_i^{(m)2} trV^{(m)-1}Z_iZ_i^tV^{(m)-1}V_{Y|W}^{(m)} +$$
+$$\theta_i^{(m)2} (\mu_{Y|W}^{(m)} - X\beta^{(m)})^tV^{(m)-1}Z_iZ_i^tV^{(m)-1} (\mu_{Y|W}^{(m)} - X\beta^{(m)})+ $$
+$$tr(\theta_i^{(m)} I - \theta_i^{(m)2}Z_i^tV^{(m)-1}Z_i)$$
+3. Maximization steps:
+$$\theta_i^{m+1} = \hat{t}^{(m)}_i / q_i$$
+and
+$$\beta^{m+1} = (X^t V^{-1}X)^{-1}X^tV^{-1}\mu_{Y|W}$$
+
+
+## Maximization update for For Correlated Random Effects
+
+*Correlated Random Effects*
+
+Fixed effects estimation,
+
+$$\beta^{m+1} = (X^tX)^{-1}X^t(E[Y|W] - \sum_{r=1}^R Z_r E[u_r|W])$$
+
+Random effects estimation,
+
+$$\Sigma_r^{m+1} = (\sum^{q_r}_{j=1}E[u_{rj}u_{rj}^t|W])/q_r$$
+
+
+## EM: Restricted Maximum Likelihood Estimation
+
+Using the above, the EM steps are,
+
+1. Obtain starting value of $\theta^{(0)}\;\; with \;\;m=0$.
+
+2. Expectation steps:
+$$\hat{t}^{(m)}_i=\theta_i^{(m)2} trP^{(m)}Z_iZ_i^tP^{(m)}V_{Y|W}^{(m)} +$$
+$$\theta_i^{(m)2} \mu_{Y|W}^{(m)t}P^{(m)}Z_iZ_i^tP^{(m)}\mu_{Y|W}^{(m)}+$$
+  $$tr(\theta_i^{(m)} I - \theta_i^{(m)2}Z_i^tP^{(m)2}Z_i)$$
+3. Maximization step,
+
+$$\theta^{(m+1)} = \hat{t}^{m}_i / q_i$$
+4. if convergence is reached $\hat{\theta}=\theta^{m+1}$ else increment m by 1 and go back to step 2.
 
 ## Example: Weil Data
 
+$$Y_{ijk} = \mu_i + u_{ij} + \epsilon_{ijk} \;\;and\;\; W_{ij}  = I_{Y_{ij} > 0}$$
+
+Here Y is the unobserved latent variables and W is indicator variable. 
+The models for the two groups i.e. the treatment and control group are fit separately.
+The output was compared with output from quasi-newton algorithm for approximation.
+It was found that for simpler models the EM algorithms converge from wider ranges. 
+![Estimation Output for Weil Data](WeilDat.png)
+
+
 ## Example : Salamander Data
+
+Uncorrelated Random Effects,
+
+$$Y=X\beta+Z_fU_f+Z_mU_m+\epsilon$$
+$$U_{f} \sim N_{20}(0,\theta_fI) \;\;\;, \;\;\; U_{m} \sim N_{20}(0,\theta_mI) \;\;\; and \;\;\; \epsilon \sim N_{120}(0,I)$$
+
+![Estimation Output for Salamander Data](salamander1.png)
+
+
+## Example: Salamander Data
+Correlated Random Effects
+$$Y=X\beta+Z_{f12}U_{f12}+Z_{m12}U_{m12}+Z_{f3}U_{f3}+Z_{m3}U_{m3}+\epsilon$$
+
+![](salamander2.png)
+
 
 ## Succesive Work for Correlated Random Effects Model
 
+The correlation error can be modeled such that $\epsilon \sim N(0, \Psi), \;\;where \;\; \Psi \neq I$.
+For longitudinal data collected for subjects over time the correlation matrix can be,
+\[
+\Psi_{n_i}(\rho) =
+  \begin{bmatrix}
+      1 & \rho & \cdots & \rho^{n_i-1}\\
+      \rho & 1 & \cdots & \rho^{n_i-1} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      \rho^{n_i-1} & \rho^{n_i-1} & \cdots & 1 \\
+  \end{bmatrix}
+\]
+The estimation for $\theta$ can be considered to be the same as model without non-identity error variances. The fixed effects MLE will change to, 
+$$\hat{\beta}(\rho) = (X^t\Psi(\rho)^{-1}X)^{-1}X^t\Psi(\rho)^{-1}(Y - \sum^R_{r=1}Z_ru_r)$$
+The MLE of $\hat{\rho}_c$ can be obtained my maximizing profile log-likelihood.
+This method can also be extended to multivariate clustered binary data which occurs when studying multiple binary traits for study subjects.
+
 ## Conclusion.
+
+## THANK YOU!

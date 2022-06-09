@@ -1,5 +1,5 @@
 ---
-title: "Maximum Likelihood Variance Components for Binary Data"
+title: "Maximum Likelihood Variance Components for Binary Data and Introduction to Model with Correlated Random Effects"
 author: "Gauri Phatak"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -21,8 +21,8 @@ library(cubature)
 
 ## Introduction
 
-Computing models for binary data are limited in usage due to the intractability of computation *cite* . In this paper a class of probit-normal models is introduced. They describe ML and REML estimations using EM algorithm. EM algorithm proposed is similar to continuous normal linear model.
-Computations are feasible for any number of structures of random effects and arbitrary number of fixed effects. Till this point ML estimation was described only for nested random effects model. 
+At the time of this paper, computing models for binary data were limited in usage due to the intractability of computation. In this paper a class of probit-normal models is introduced. They describe ML and REML estimations using EM algorithm. EM algorithm proposed is similar to continuous normal linear model.
+Computations are feasible for any number of structures of random effects and arbitrary number of fixed effects. Till this point ML estimation was described only for nested random effects model. Incorporation of random effects is useful to account for heterogeneity, over dispersion and intra-cluster correlation. In successive paper by Chan & Kuk they consider correlated random effects.
 
 The focus of this paper is on variance estimation in mixed models and BLUP of observed values of random effects. Usual repeated measures model concentrate on fixed effects parameters and treat variance parameters as nuisance.
 
@@ -49,6 +49,7 @@ The output from the model can be interpreted by using cdf of standard normal.
 
 $$\theta_i = P(Y=1|x_i) = \Phi (x_i' \beta)$$
 $$\Phi(t) = (2\pi)^{-1/2}\int^t_{-\infty}exp(-\frac{1}{2}z^2)dz$$
+*Model with independent Random effects*
 
 Threshold model,
 
@@ -64,6 +65,18 @@ $$Z \equiv diag\{1_{n_{ij}}\}, j = 1,2,....m_i\;\; and \;\; \beta = \mu$$
 u and $\epsilon$ are independent
 This model has restriction that negative correlations cannot be model.
 The primary interest is estimation of D parameter i.e. the variances of random effects. 
+
+*Model with correlated Random effects*
+
+Model,
+
+$$Y = X\beta + \sum^{R}_{r=1}Z_r u_r +\epsilon$$
+
+As opposed to the model in McCulloch paper, the distribution of $u_r$ is,
+
+$$u_r \sim N_{q_rk_r}(0,I_{q_r} \otimes \Sigma_r)$$
+
+Here, $u_r$ is made up of $q_r$ iid random vectors of $k_r$ dimensions each.
 
 ### What is logit model?
 
@@ -82,10 +95,37 @@ $$E[W_i] = \Phi(x_i^t\beta(z_i^tDz_i +I)^{-1/2})$$
 
 Going forward the paper follows standard ANOVA model for variance components estimation,
 
+*For Uncorrelated Random effects model*
+
 $$Y = X \beta +\sum_{i=1}^r Z_i u_i +\epsilon$$
 $$u_i \sim  N_{q_r}(0,\theta_i I)\;\;\; and \;\;\; \epsilon \sim N(0,I)$$
 
-## MLE and EM for MLE and REML
+*For Correlated Random Effects model*
+
+The distribution of complete data is,
+
+\[
+  \begin{bmatrix}
+    Y \\ u_1 \\ \vdots \\ u_R
+  \end{bmatrix}
+  \quad
+  \sim  N_{n+Q}\{
+  \begin{bmatrix}
+  X\beta \\ 0 \\ \vdots \\ 0
+  \end{bmatrix} ,
+  \begin{bmatrix}
+      V    & Z_1(I_{q_1} \otimes \Sigma_1) & \cdots & \cdots & Z_R(I_{q_R} \otimes \Sigma_R) \\
+      (I_{q_1} \otimes \Sigma_1)Z_1^t & (I_{q_1} \otimes \Sigma_1) & 0 &\cdots & 0 \\
+    \vdots & \vdots & \vdots &   \ddots     &  \vdots   \\
+      (I_{q_R} \otimes \Sigma_R)Z_R^t    & 0 & 0 & \cdots & (I_{q_R} \otimes \Sigma_R) \\
+  \end{bmatrix} \}
+\]
+
+Here,
+
+$$V = I_n + \sum^{R}_{r=1} Z_r(I_{q_r} \otimes \Sigma_r)Z_r^t$$
+
+## EM for MLE and REML
 
 ### MLE
 
@@ -99,9 +139,10 @@ Reasons for using EM algorithm:
 
 4. Converges from a wider range of starting values as compared to quasi-Newton algorithm. 
 
+*For uncorrelated random effects*
 
 *For the Maximization step*, 
-Complete data is $(Y, u_i) \;\;\; where\;\;\; i =1,2,3...r$ with r random variables. The maximum likelihood estimate for $\theta_i$ is $\frac{u_i^tu_i}{q_i}$ where $q_i$ is total number of levels within a random effect variable. The MLe for $\beta$ i.e. the fixed effects is $(X^t\hat{V}^{-1}X)^{-1}X^t\hat{V}^{-1}Y$. Here $\hat{V}^{-1}$ is the variance of Y calculated using $\hat{\theta}_i$.
+Complete data is $(Y, u_i) \;\;\; where\;\;\; i =1,2,3...r$ with r random variables. The maximum likelihood estimate for $\theta_i$ is $\frac{u_i^tu_i}{q_i}$ where $q_i$ is total number of levels within a random effect variable. The MLE for $\beta$ i.e. the fixed effects is $(X^t\hat{V}^{-1}X)^{-1}X^t\hat{V}^{-1}Y$. Here $\hat{V}^{-1}$ is the variance of Y calculated using $\hat{\theta}_i$.
 
 $$var(Y) = I + \sum^c_{i=1}\theta_iZ_iZ_i^t$$
 
@@ -111,6 +152,7 @@ $E[Y|W]$ and $E[u_i^tu_i|W]$ can be calculated using the below,
 
 $$E[u_i^tu_i|W] = E[E[u_i^tu_i|Y] |W]$$
 To calculate the inner expectation using multivariate normal distribution since the random variables are normally distributed.
+
 
 $$E[u_i^tu_i|Y] = \theta^2_i(Y-X\beta)^tV^{-1}Z_iZ_i^tV^{-1}(Y-X\beta) + tr(\theta_i I - \theta^2_i Z_i^t V^{-1}Z_i)$$
 Using the equation above to calculate $E[u_i^tu_i|W]$  we get,
@@ -142,13 +184,23 @@ and $\beta^{m+1}$,
 
 $$\beta^{m+1} = (X^t V^{-1}X)^{-1}X^tV^{-1}\mu_{Y|W}$$
 
+*Maximization update for For Correlated Random Effects*
+
+Fixed effects estimation,
+
+$$\beta^{m+1} = (X^tX)^{-1}X^t(E[Y|W] - \sum_{r=1}^R Z_r E[u_r|W])$$
+
+Random effects estimation,
+
+$$\Sigma_r^{m+1} = (\sum^{q_r}_{j=1}E[u_{rj}u_{rj}^t|W])/q_r$$
+
 4. if convergence is reached $\hat{\theta}=\theta^{m+1}$ and $\hat{\beta} = \beta^{m+1}$ else,  increment m by 1 and return to step 1.
 
 The implementation of EM algorithm is identical to the continuous case.
 
 ### EM for REML estimation
 
-For REML we try and maximize the portion of likelihood that depends only on the variance and not on the fixed effects components. Here they have treated fixed effects as random effects for which variance tends to infinity *How?*. Setting prior information for fixed effects be 0, the expected value can be calculated as:
+For REML we try and maximize the portion of likelihood that depends only on the variance and not on the fixed effects components. Here they have treated fixed effects as random effects for which variance tends to infinity. Setting prior information for fixed effects be 0, the expected value can be calculated as:
 
 $$E[u_i^tu_i|W] = \theta_i^2 trPZ_iZ_i^tPV_{Y|W} +\theta_i^2 \mu_{Y|W}^tPZ_iZ_i^tP\mu_{Y|W}+tr(\theta_i I - \theta_i^2Z_i^tPZ_i)$$
 Where $P = V^{-1} - V^{-1}X(X^tV^{-1}X)^{-1}X^tV^{-1}$.
@@ -187,45 +239,6 @@ $$Y_{cjk} = \mu_c + u_{cj} + \epsilon_{cjk} \;\;and\;\; W_{cj}  = I_{Y_{cj} > 0}
 
 Using EM for ML estimation the estimates for treatment group $\hat{\mu}_t = 1.306$ and $\hat{\sigma}_t =0.2403$ and estimates for control group is $\hat{\mu}_t = 0.946$ and $\hat{\sigma}_t =1.023$. This output was compared with output from quasi-newton algorithm for approximation.It was found that for simpler models the EM algorithms converge from wider ranges. 
 
-
-```{r, include=FALSE}
-#c 13 13   c 12 12   c  9  9   c  9  9   c  8  8   c  8  8   c 13 12   c 12 11
-#c 10  9   c 10  9   c  9  8   c 13 11   c  5  4   c  7  5   c 10  7   c 10  7
-#t 12 12   t 11 11   t 10 10   t  9  9   t 11 10   t 10  9   t 10  9   t  9  8
-#t  9  8   t  5  4   t  9  7   t  7  4   t 10  5   t  6  3   t 10  3   t  7  0
-
-## since previous analyses have shown unequal values of variance in the two groups each group is fit separatetly. 
-
-## installing nlmixer package to get the data
-#install.packages("nlmixr")
-# SAS package explaining data: https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_nlmixed_sect040.htm
-## Step 1: set ini  initial values
-
-## Put this in while loop till convergence.
-## Step 2: Expectation step
-
-## Step3: Maximization step
-# 
-# dat$IDFac <- factor(dat$ID)
-# 
-# bFit <- glmer(W ~ x1+(1|IDFac), data = dat,family = binomial(link= "probit"))
-# summary(bFit)
-# 
-# glmmFit <- glmm(W ~ trt, list(W ~ IDFac), varcomps.names = c("IDFac"), data  = dat, family.glmm = binomial.glmm, m =100000)
-# summary(glmmFit)
-# 
-# 
-# ## Using the EM function
-# 
-# EMfit <-  EM(y = dat$W,
-#              X = model.matrix(~ dat$trt-1),
-#              ZETA = list(Z = model.matrix(~ dat$IDFac -1)))
-# 
-## HOW TO DO JUST THE SIMULATION.
-# For Simulation just set beta0 and beta 1 u1 and u1 and X and Z can be the same vector. this way you have fixed intercept and slope b0 and b1 and random intercept and slope u0 and u1. Using this generate Y and if Y is positive set W to be 1 0 otherwise. Fixed value are 'i' random effect are'j' and individual data are 'k'.
-
-```
-
 ### Salamander data
 
 The model used here is more complicated as compared to the previous one. Given this, numerical integration to calculate the dependent expectation and variance is not possible. In this paper they used Gibbs sampling to calculate the values and use in EM algorithm. This model uses 2 crossed random effects and 4 fixed effects.
@@ -239,9 +252,64 @@ $$U_{f} \sim N_{20}(0,\theta_fI) \;\;\;, \;\;\; U_{m} \sim N_{20}(0,\theta_mI) \
 X is the fixed effect matrix, $Z_f$ is the random effects matrix for female and $Z_m$ is the random effects matrix for male and $\beta = (\beta_{R/R},\beta_{R/W},\beta_{W/R},\beta_{W/W})$. 
 the final estimates for the parameter values are: $\hat{\beta}_{R/R} = 0.819,\hat{\beta}_{R/W}=0.538,\hat{\beta}_{W/R}=-0.978,\hat{\beta}_{W/W}=0.707, \hat{\theta}_f = 0.6 \;\; and \;\; \hat{\theta}_m = 0.067$
 
-##Try coding for the rat example
+*Salamander data analysis using Correlated Random Effects* 
 
-```{r}
+The data gathered for this experiments had 3 setups. The same set of animals were used for the first two experiments. The assumption for this model is that the the random effects corresponding to the same animals are correlated. 
+
+The model of combined data set for the three experiments includes,
+
+$$Y=X\beta+Z_{f12}U_{f12}+Z_{m12}U_{m12}+Z_{f3}U_{f3}+Z_{m3}U_{m3}+\epsilon$$
+
+The fixed effects are the same as the model from McCullough paper.
+
+the distribution for random effects are,
+
+$$u_{f12} \sim N_{40}(0,I_{20}\otimes \Sigma_{f12}), \;\;\; where\;\;\; \Sigma_{f12} = \begin{matrix}
+\sigma^2_{f1} & \sigma_{f12} \\
+\sigma_{f12} & \sigma^2_{f2} 
+\end{matrix} $$
+
+$$u_{m12} \sim N_{40}(0,I_{20}\otimes \Sigma_{m12}), \;\;\; where\;\;\; \Sigma_{m12} = \begin{matrix}
+\sigma^2_{m1} & \sigma_{m12} \\
+\sigma_{m12} & \sigma^2_{m2} 
+\end{matrix} $$
+$$u_{f3} \sim N_{40}(0,\sigma^2_{f3}I_{20}),\;\;\; u_{m3} \sim N_{40}(0,\sigma^2_{m3}I_{20})  $$
+
+
+## Extension to model to allow for correlation error 
+
+The correlation error can be modeled such that $\epsilon \sim N(0, \Psi), \;\;where \;\; \Psi \neq I$.
+
+For longitudinal data collected for subjects over time the correlation matrix can be,
+
+
+
+\[
+\Psi_{n_i}(\rho) =
+  \begin{bmatrix}
+      1 & \rho & \cdots & \rho^{n_i-1}\\
+      \rho & 1 & \cdots & \rho^{n_i-1} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      \rho^{n_i-1} & \rho^{n_i-1} & \cdots & 1 \\
+  \end{bmatrix}
+\]
+
+The correlation matrix for $\epsilon$ is a block diagonal given by,
+
+$$\Psi(\rho) = diag(\Psi_{n_1}(\rho),\Psi_{n_2}(\rho),\Psi_{n_3}(\rho),....,\Psi_{n_m}(\rho))$$
+
+The estimation for MLE can be considered to be the same as model without non-identity error variances. The fixed effects MLE will change to, 
+
+$$\hat{\beta}(\rho) = (X^t\Psi(\rho)^{-1}X)^{-1}X^t\Psi(\rho)^{-1}(Y - \sum^R_{r=1}Z_ru_r)$$
+
+The MLE of $\hat{\rho}_c$ can be obtained my maximizing profile log-likelihood.
+
+This method can also be extended to multivariate clustered binary data which occurs when studying multiple binary traits for study subjects.
+
+
+## Try coding for the rat example
+
+```{r, include=FALSE}
 
 data("rats")
 dat <- rats
@@ -348,10 +416,12 @@ while (abs(Q[k]-Q[k-1])>=1e-6){
 
 The Output from SAS which uses Newton-Rhapson approximation method is as given below,
 
+![Estimation Output for Weil Data](WeilDat.png)
+
 As we can see it is very similar to the output from the EM method.
 
 
-## Conclusion and succesive work
+## Conclusion and succesive extension
 
 This paper gives a framework for ML and REML estimation for Binary data using EM algorithm. It is similar to EM for continuous data. The limiting factor in this paper is using random effects as uncorrelated. Extension of the work done in the paper can be seen in paper by Chan and Kuk. In their paper they introduce an estimation method for mixed models with correlated random effects. 
 
